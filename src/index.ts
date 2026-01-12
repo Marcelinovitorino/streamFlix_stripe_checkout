@@ -9,7 +9,180 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-12
 const app = new Hono()
 
 app.get('/', (c) => {
-  return c.text('Hello Hono!')
+  const html = `
+  <!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Checkout • StreamFlix</title>
+
+  <script src="https://js.stripe.com/v3/"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f0f0f, #1c1c1c);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+
+    .checkout-container {
+      background: #141414;
+      width: 100%;
+      max-width: 420px;
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .logo {
+      text-align: center;
+      font-size: 28px;
+      font-weight: bold;
+      color: #e50914;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 22px;
+      margin-bottom: 12px;
+    }
+
+    p.subtitle {
+      text-align: center;
+      font-size: 14px;
+      color: #bbb;
+      margin-bottom: 24px;
+    }
+
+    .plan {
+      background: #1f1f1f;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .plan h2 {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+
+    .price {
+      font-size: 32px;
+      font-weight: bold;
+      color: #e50914;
+      margin-bottom: 10px;
+    }
+
+    .features {
+      list-style: none;
+      font-size: 14px;
+      color: #ccc;
+    }
+
+    .features li {
+      margin-bottom: 6px;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: bold;
+      background: #e50914;
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    button:hover {
+      background: #f6121d;
+      transform: translateY(-2px);
+    }
+
+    button:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 12px;
+      color: #888;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="checkout-container">
+    <div class="logo">StreamFlix by <p>Marcelino Manguele</p></div>
+
+    <h1>Assinatura Premium</h1>
+    <p class="subtitle">Filmes e séries ilimitados, sem anúncios</p>
+
+    <div class="plan">
+      <h2>Plano Mensal</h2>
+      <div class="price">MZN 299,90</div>
+      <ul class="features">
+        <li>✔ Catálogo completo de filmes</li>
+        <li>✔ Séries exclusivas</li>
+        <li>✔ Assista em até 4 telas</li>
+        <li>✔ Cancelamento a qualquer momento</li>
+      </ul>
+    </div>
+
+    <button id="checkout">Pagar com Cartão</button>
+
+    <div class="footer">Pagamento seguro via Stripe 🔒</div>
+  </div>
+
+  <script>
+    const stripe = Stripe("${process.env.STRIPE_PUBLISHABLE_KEY}");
+    const checkoutButton = document.getElementById("checkout");
+
+    checkoutButton.addEventListener("click", async () => {
+      checkoutButton.disabled = true;
+      checkoutButton.innerText = "Processando...";
+
+      try {
+        const response = await fetch("/checkout", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          }
+        });
+
+        const data = await response.json();
+
+        await stripe.redirectToCheckout({
+          sessionId: data.id
+        });
+      } catch (error) {
+        alert("Erro ao iniciar pagamento");
+        checkoutButton.disabled = false;
+        checkoutButton.innerText = "Pagar com Cartão";
+      }
+    });
+  </script>
+</body>
+</html>
+
+`
+  return c.html(html)
 })
 
 //
@@ -19,7 +192,7 @@ app.post("/checkout", async (c) => {
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [{
-        price: "price_1SoUhfIIHhBRgarEwV6UQkWr",
+        price: "price_1SoeZ1IIHhBRgarEjcMADw5Y",
         quantity: 1
       }
 
@@ -46,6 +219,7 @@ app.get("/success", (c) => {
 app.get("/cancel", (c) => {
   return c.text('cancel!')
 })
+
 serve({
   fetch: app.fetch,
   port: 3000
