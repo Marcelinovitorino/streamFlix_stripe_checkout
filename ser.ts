@@ -1,0 +1,445 @@
+import { serve } from '@hono/node-server'
+import { Hono } from 'hono'
+import "dotenv/config"
+import Stripe from 'stripe'
+import { HTTPException } from 'hono/http-exception'
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-12-15.clover' })
+
+const app = new Hono()
+
+app.get('/', (c) => {
+    const html = `
+  <!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Checkout • StreamFlix</title>
+
+  <script src="https://js.stripe.com/v3/"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f0f0f, #1c1c1c);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+
+    .checkout-container {
+      background: #141414;
+      width: 100%;
+      max-width: 420px;
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .logo {
+      text-align: center;
+      font-size: 28px;
+      font-weight: bold;
+      color: #e50914;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 22px;
+      margin-bottom: 12px;
+    }
+
+    p.subtitle {
+      text-align: center;
+      font-size: 14px;
+      color: #bbb;
+      margin-bottom: 24px;
+    }
+
+    .plan {
+      background: #1f1f1f;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .plan h2 {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+
+    .price {
+      font-size: 32px;
+      font-weight: bold;
+      color: #e50914;
+      margin-bottom: 10px;
+    }
+
+    .features {
+      list-style: none;
+      font-size: 14px;
+      color: #ccc;
+    }
+
+    .features li {
+      margin-bottom: 6px;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: bold;
+      background: #e50914;
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    button:hover {
+      background: #f6121d;
+      transform: translateY(-2px);
+    }
+
+    button:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 12px;
+      color: #888;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="checkout-container">
+    <div class="logo">StreamFlix by <p>Marcelino Manguele</p></div>
+
+    <h1>Assinatura Premium</h1>
+    <p class="subtitle">Filmes e séries ilimitados, sem anúncios</p>
+
+    <div class="plan">
+      <h2>Plano Mensal</h2>
+      <div class="price">MZN 299,90</div>
+      <ul class="features">
+        <li>✔ Catálogo completo de filmes</li>
+        <li>✔ Séries exclusivas</li>
+        <li>✔ Assista em até 4 telas</li>
+        <li>✔ Cancelamento a qualquer momento</li>
+      </ul>
+    </div>
+
+    <button id="checkout">Pagar com Cartão</button>
+
+    <div class="footer">Pagamento seguro via Stripe 🔒</div>
+  </div>
+
+  <script>
+    const stripe = Stripe("${process.env.STRIPE_PUBLISHABLE_KEY}");
+    const checkoutButton = document.getElementById("checkout");
+
+    checkoutButton.addEventListener("click", async () => {
+      checkoutButton.disabled = true;
+      checkoutButton.innerText = "Processando...";
+
+      try {
+        const response = await fetch("/checkout", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          }
+        });
+
+        const data = await response.json();
+
+        await stripe.redirectToCheckout({
+          sessionId: data.id
+        });
+      } catch (error) {
+        alert("Erro ao iniciar pagamento");
+        checkoutButton.disabled = false;
+        checkoutButton.innerText = "Pagar com Cartão";
+      }
+    });
+  </script>
+</body>
+</html>
+
+`
+    return c.html(html)
+})
+
+//rota de checkout
+app.post("/checkout", async (c) => {
+
+    try {
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [{
+                price: "price_1SoeZ1IIHhBRgarEjcMADw5Y",
+                quantity: 1
+            }
+
+            ],
+            mode: "subscription",
+            success_url: "http://localhost:3000/success",
+            cancel_url: "http://localhost:3000/cancel"
+
+        })
+        return c.json(session)
+
+    } catch (error: any) {
+        console.log(error)
+        throw new HTTPException(500, { message: error?.message })
+
+    }
+})
+
+//rota de pagamento realizado com sucesso
+app.get("/success", (c) => {
+    const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pagamento Confirmado • StreamFlix</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f0f0f, #1c1c1c);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+
+    .card {
+      background: #141414;
+      max-width: 420px;
+      width: 100%;
+      padding: 32px;
+      border-radius: 16px;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .logo {
+      font-size: 28px;
+      font-weight: bold;
+      color: #e50914;
+      margin-bottom: 16px;
+    }
+
+    .icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+
+    p {
+      font-size: 14px;
+      color: #bbb;
+      margin-bottom: 24px;
+    }
+
+    a {
+      display: inline-block;
+      padding: 14px 24px;
+      background: #e50914;
+      color: #fff;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <div class="logo">StreamFlix</div>
+    <div class="icon">✅</div>
+
+    <h1>Pagamento confirmado!</h1>
+    <p>
+      Obrigado por assinar o <strong>StreamFlix Premium</strong>.<br />
+      Agora você já pode aproveitar filmes e séries sem limites.
+    </p>
+
+    <a href="/">Voltar para o início</a>
+  </div>
+</body>
+</html>
+  `;
+
+    return c.html(html);
+});
+
+//rota de concelamento
+app.get("/cancel", (c) => {
+    const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pagamento Cancelado • StreamFlix</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f0f0f, #1c1c1c);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+
+    .card {
+      background: #141414;
+      max-width: 420px;
+      width: 100%;
+      padding: 32px;
+      border-radius: 16px;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .logo {
+      font-size: 28px;
+      font-weight: bold;
+      color: #e50914;
+      margin-bottom: 16px;
+    }
+
+    .icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+
+    p {
+      font-size: 14px;
+      color: #bbb;
+      margin-bottom: 24px;
+    }
+
+    a {
+      display: inline-block;
+      padding: 14px 24px;
+      background: #555;
+      color: #fff;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    a:hover {
+      background: #777;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <div class="logo">StreamFlix</div>
+    <div class="icon">❌</div>
+
+    <h1>Pagamento cancelado</h1>
+    <p>
+      O pagamento não foi concluído.<br />
+      Se quiser, você pode tentar novamente.
+    </p>
+
+    <a href="/">Voltar para o pagamento</a>
+  </div>
+</body>
+</html>
+  `;
+
+    return c.html(html);
+});
+
+//lidando com webhooks
+app.post("/webhook", async (c) => {
+    const rowBody = await c.req.text()
+    const signature = c.req.header('stripe-signature')
+
+    let event;
+    try {
+        event = stripe.webhooks.constructEvent(rowBody, signature!, process.env.STRIPE_WEBHOOK_SECRET!)
+
+    } catch (error: any) {
+        console.log(`webhook signatutre verification failed ${error.message}`)
+        throw new HTTPException(400)
+    }
+    if (event.type === 'checkout.session.completed') {
+        const session = event.data.object;
+        console.log(session)
+
+    }
+
+    if (event.type === 'customer.subscription.updated') {
+        const session = event.data.object;
+        console.log(session)
+
+    }
+    if (event.type === 'customer.subscription.pending_update_applied') {
+        const session = event.data.object;
+        console.log(session)
+
+    }
+
+    if (event.type === 'customer.subscription.deleted') {
+        const session = event.data.object;
+        console.log(session)
+
+    }
+    return c.status(200);
+})
+
+serve({
+    fetch: app.fetch,
+    port: 3000
+}, (info) => {
+    console.log(`Server is running on http://localhost:${info.port}`)
+})
