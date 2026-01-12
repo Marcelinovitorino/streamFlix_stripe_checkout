@@ -213,12 +213,192 @@ app.post("/checkout", async (c) => {
 
 //
 app.get("/success", (c) => {
-  return c.text('success!')
-})
+  const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pagamento Confirmado • StreamFlix</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f0f0f, #1c1c1c);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+
+    .card {
+      background: #141414;
+      max-width: 420px;
+      width: 100%;
+      padding: 32px;
+      border-radius: 16px;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .logo {
+      font-size: 28px;
+      font-weight: bold;
+      color: #e50914;
+      margin-bottom: 16px;
+    }
+
+    .icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+
+    p {
+      font-size: 14px;
+      color: #bbb;
+      margin-bottom: 24px;
+    }
+
+    a {
+      display: inline-block;
+      padding: 14px 24px;
+      background: #e50914;
+      color: #fff;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <div class="logo">StreamFlix</div>
+    <div class="icon">✅</div>
+
+    <h1>Pagamento confirmado!</h1>
+    <p>
+      Obrigado por assinar o <strong>StreamFlix Premium</strong>.<br />
+      Agora você já pode aproveitar filmes e séries sem limites.
+    </p>
+
+    <a href="/">Voltar para o início</a>
+  </div>
+</body>
+</html>
+  `;
+
+  return c.html(html);
+});
+
 //
 app.get("/cancel", (c) => {
-  return c.text('cancel!')
-})
+  const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pagamento Cancelado • StreamFlix</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f0f0f, #1c1c1c);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+
+    .card {
+      background: #141414;
+      max-width: 420px;
+      width: 100%;
+      padding: 32px;
+      border-radius: 16px;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .logo {
+      font-size: 28px;
+      font-weight: bold;
+      color: #e50914;
+      margin-bottom: 16px;
+    }
+
+    .icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+
+    p {
+      font-size: 14px;
+      color: #bbb;
+      margin-bottom: 24px;
+    }
+
+    a {
+      display: inline-block;
+      padding: 14px 24px;
+      background: #555;
+      color: #fff;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    a:hover {
+      background: #777;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <div class="logo">StreamFlix</div>
+    <div class="icon">❌</div>
+
+    <h1>Pagamento cancelado</h1>
+    <p>
+      O pagamento não foi concluído.<br />
+      Se quiser, você pode tentar novamente.
+    </p>
+
+    <a href="/">Voltar para o pagamento</a>
+  </div>
+</body>
+</html>
+  `;
+
+  return c.html(html);
+});
+
 
 serve({
   fetch: app.fetch,
