@@ -185,7 +185,7 @@ app.get('/', (c) => {
   return c.html(html)
 })
 
-//
+//rota de checkout
 app.post("/checkout", async (c) => {
 
   try {
@@ -211,7 +211,7 @@ app.post("/checkout", async (c) => {
   }
 })
 
-//
+//rota de pagamento realizado com sucesso
 app.get("/success", (c) => {
   const html = `
 <!DOCTYPE html>
@@ -303,7 +303,7 @@ app.get("/success", (c) => {
   return c.html(html);
 });
 
-//
+//rota de concelamento
 app.get("/cancel", (c) => {
   const html = `
 <!DOCTYPE html>
@@ -399,6 +399,43 @@ app.get("/cancel", (c) => {
   return c.html(html);
 });
 
+//lidando com webhooks
+app.post("/webhook", async (c) => {
+  const rowBody = await c.req.text()
+  const signature = c.req.header('stripe-signature')
+
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(rowBody, signature!, process.env.STRIPE_WEBHOOK_SECRET!)
+
+  } catch (error: any) {
+    console.log(`webhook signatutre verification failed ${error.message}`)
+    throw new HTTPException(400)
+  }
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+    console.log(session)
+
+  }
+
+  if (event.type === 'customer.subscription.updated') {
+    const session = event.data.object;
+    console.log(session)
+
+  }
+  if (event.type === 'customer.subscription.pending_update_applied') {
+    const session = event.data.object;
+    console.log(session)
+
+  }
+
+  if (event.type === 'customer.subscription.deleted') {
+    const session = event.data.object;
+    console.log(session)
+
+  }
+  return c.status(200);
+})
 
 serve({
   fetch: app.fetch,
