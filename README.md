@@ -24,6 +24,7 @@ npm install
 2. Crie um arquivo `.env` na raiz com as variáveis necessárias (exemplo abaixo):
 
 ```
+STRIPE_PUBLISHABLE_KEY=pk_...
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 ```
@@ -43,29 +44,6 @@ node ./dist/index.js
 - **GET /success** — página de sucesso (`routes/success.ts`).
 - **GET /cancel** — página de cancelamento (`routes/cancel.ts`).
 - **POST /webhook** — endpoint para receber eventos do Stripe (`routes/webhook.ts`).
-
-**Fluxo da aplicação (diagrama):**
-
-```mermaid
-flowchart LR
-	User([Usuário]) --> Browser[Frontend (index.html)]
-	Browser --> App[Hono App]
-	subgraph Rotas
-		App -->|GET /| Home[home.ts]
-		App -->|POST /create-checkout-session| Checkout[checkout.ts]
-		App -->|GET /success| Success[success.ts]
-		App -->|GET /cancel| Cancel[cancel.ts]
-		App -->|POST /webhook| Webhook[webhook.ts]
-	end
-	Checkout -->|Cria sessão| StripeAPI[Stripe Checkout]
-	StripeAPI -->|Redireciona (success/cancel)| Browser
-	StripeAPI -->|Envia evento| Webhook
-	Webhook -->|Valida e processa| ServicesStripe[services/stripe.ts]
-	ServicesStripe -->|Atualiza estado / notifica| App
-
-	classDef infra fill:#f9f,stroke:#333,stroke-width:1px;
-	StripeAPI,Webhook,ServicesStripe class infra;
-```
 
 **Estrutura do projeto (resumida):**
 
